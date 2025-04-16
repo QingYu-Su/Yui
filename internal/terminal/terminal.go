@@ -319,7 +319,7 @@ func defaultAutoComplete(term *Terminal, line string, pos int, key rune) (newLin
 
 						// 处理特殊自动补全标记(如<file>)
 						if len(expected) == 1 && len(expected[0]) > 1 {
-							//检查是否为<...>格式的标记
+							//检查是否为<...>格式的标记，这类标记是内置的特殊标记，需要特殊处理
 							if expected[0][0] == '<' && expected[0][len(expected[0])-1] == '>' {
 								// 查找预定义的自动补全值
 								if trie, ok := term.autoCompleteValues[expected[0]]; ok {

@@ -51,12 +51,12 @@ type Connection struct {
 type User struct {
 	sync.RWMutex // 读写锁，用于并发控制
 
-	// 用户的所有连接映射
+	// 该用户的所有连接映射，即服务器作为SSH服务端所接收的所有连接
 	userConnections map[string]*Connection
 	// 用户名
 	username string
 
-	// 用户的所有SSH客户端连接
+	// 用户的所有SSH客户端连接，即服务器作为代理连接的所有SSH客户端
 	clients map[string]*ssh.ServerConn
 	// 自动补全功能的Trie树
 	autocomplete *trie.Trie
