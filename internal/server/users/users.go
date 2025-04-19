@@ -28,11 +28,11 @@ var (
 	lck sync.RWMutex // 读写锁，用于并发控制
 	// 用户名到用户对象的映射
 	users = map[string]*User{}
-	// 当前活跃的连接
+	// 当前活跃的连接SSH客户端连接
 	activeConnections = map[string]bool{}
 )
 
-// Connection 表示用户与服务器的连接
+// Connection 表示SSH客户端连接
 type Connection struct {
 	// 用户与服务器的SSH连接，用于创建新通道等操作，不应直接进行io.Copy操作
 	serverConnection ssh.Conn
@@ -51,12 +51,12 @@ type Connection struct {
 type User struct {
 	sync.RWMutex // 读写锁，用于并发控制
 
-	// 该用户的所有连接映射，即服务器作为SSH服务端所接收的所有连接
+	// 该用户的所有SSH客户端连接，key为用户名@地址
 	userConnections map[string]*Connection
 	// 用户名
 	username string
 
-	// 用户的所有SSH客户端连接，即服务器作为代理连接的所有SSH客户端
+	// 用户的所有RSSH客户端连接，key为RSSH客户端唯一ID
 	clients map[string]*ssh.ServerConn
 	// 自动补全功能的Trie树
 	autocomplete *trie.Trie
@@ -65,7 +65,7 @@ type User struct {
 	privilege *int
 }
 
-// SetOwnership 设置用户的连接所有权
+// SetOwnership 设置RSSH客户端的用户
 func (u *User) SetOwnership(uniqueID, newOwners string) error {
 	// 加锁，确保并发安全
 	lck.Lock()
@@ -105,7 +105,7 @@ func (u *User) SetOwnership(uniqueID, newOwners string) error {
 	return nil
 }
 
-// SearchClients 搜索符合过滤条件的客户端连接（可以搜索ID、别名和地址）
+// SearchClients 搜索符合过滤条件的RSSH客户端连接（可以搜索ID、别名和地址）
 func (u *User) SearchClients(filter string) (out map[string]*ssh.ServerConn, err error) {
 	// 在过滤条件后添加通配符，以便进行模式匹配
 	filter = filter + "*"
@@ -167,7 +167,7 @@ func (u *User) SearchClients(filter string) (out map[string]*ssh.ServerConn, err
 	return
 }
 
-// _matches 检查客户端ID或远程地址是否匹配过滤条件
+// _matches 检查RSSH客户端ID或远程地址是否匹配过滤条件
 func _matches(filter, clientId, remoteAddr string) bool {
 	// 检查客户端ID是否匹配过滤条件
 	match, _ := filepath.Match(filter, clientId)
@@ -188,7 +188,7 @@ func _matches(filter, clientId, remoteAddr string) bool {
 	return match
 }
 
-// Matches 检查指定的客户端ID或远程地址是否匹配过滤条件
+// Matches 检查指定的RSSH客户端ID或远程地址是否匹配过滤条件
 func (u *User) Matches(filter, clientId, remoteAddr string) bool {
 	// 加读锁，确保并发安全
 	lck.RLock()
@@ -198,7 +198,7 @@ func (u *User) Matches(filter, clientId, remoteAddr string) bool {
 	return _matches(filter, clientId, remoteAddr)
 }
 
-// GetClient 根据标识符获取客户端连接
+// GetClient 根据标识符获取RSSH客户端连接
 func (u *User) GetClient(identifier string) (*ssh.ServerConn, error) {
 	// 加读锁，确保并发安全
 	lck.RLock()
@@ -272,7 +272,7 @@ func (u *User) GetClient(identifier string) (*ssh.ServerConn, error) {
 	return nil, fmt.Errorf("%d connections match alias '%s'\n%s", matches, identifier, matchingHosts)
 }
 
-// Autocomplete 获取用户的自动补全功能
+// Autocomplete 获取用户的自动补全树
 func (u *User) Autocomplete() *trie.Trie {
 	// 如果用户是管理员，返回全局自动补全Trie树
 	if u.privilege != nil && *u.privilege == AdminPermissions {
@@ -283,7 +283,7 @@ func (u *User) Autocomplete() *trie.Trie {
 	return u.autocomplete
 }
 
-// Session 根据连接详情获取用户的会话连接
+// Session 根据连接详情（用户名@地址）获取用户的SSH客户端连接
 func (u *User) Session(connectionDetails string) (*Connection, error) {
 	// 在用户的连接映射中查找
 	if c, ok := u.userConnections[connectionDetails]; ok {
@@ -350,7 +350,7 @@ func CreateOrGetUser(username string, serverConnection *ssh.ServerConn) (us *Use
 	return _createOrGetUser(username, serverConnection)
 }
 
-// _createOrGetUser 创建或获取用户对象（非线程安全，仅内部使用）
+// _createOrGetUser 创建或获取用户对象（非线程安全，仅内部使用），第二个参数为SSH客户端连接，可以一并传入创建用户
 func _createOrGetUser(username string, serverConnection *ssh.ServerConn) (us *User, connectionDetails string, err error) {
 	// 从用户映射中查找用户
 	u, ok := users[username]
@@ -368,7 +368,7 @@ func _createOrGetUser(username string, serverConnection *ssh.ServerConn) (us *Us
 		u = newUser
 	}
 
-	// 如果提供了服务器连接
+	// 如果提供了SSH客户端连接
 	if serverConnection != nil {
 		// 创建新的连接对象
 		newConnection := &Connection{
@@ -426,7 +426,7 @@ func ListUsers() (userList []string) {
 	return
 }
 
-// DisconnectUser 断开用户的连接
+// DisconnectUser 断开SSH客户端与用户的连接，如果用户没有其他RSSH客户端连接，则删除该用户
 func DisconnectUser(ServerConnection *ssh.ServerConn) {
 	// 如果服务器连接不为空
 	if ServerConnection != nil {
@@ -452,7 +452,7 @@ func DisconnectUser(ServerConnection *ssh.ServerConn) {
 		// 从活跃连接映射中删除该连接
 		delete(activeConnections, details)
 
-		// 如果用户没有其他客户端连接，从用户映射中删除该用户
+		// 如果用户没有其他RSSH客户端连接，从用户映射中删除该用户
 		if len(user.clients) == 0 {
 			delete(users, user.username)
 		}

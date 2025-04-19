@@ -40,10 +40,10 @@ func (r *RemoteForwardRequest) String() string {
 
 // ChannelOpenDirectMsg 定义了一个结构体，用于表示直接通道打开消息
 type ChannelOpenDirectMsg struct {
-	Raddr string // 远程地址
-	Rport uint32 // 远程端口
-	Laddr string // 本地地址
-	Lport uint32 // 本地端口
+	Raddr string // 目标地址
+	Rport uint32 // 目标端口
+	Laddr string // 源地址
+	Lport uint32 // 源端口
 }
 
 // GeneratePrivateKey 生成一个私钥，并将其转换为 PEM 格式

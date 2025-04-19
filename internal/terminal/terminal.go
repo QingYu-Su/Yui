@@ -55,7 +55,7 @@ var vt100EscapeCodes = EscapeCodes{
 
 // Terminal 表示一个支持读取输入行的VT100终端状态
 type Terminal struct {
-	session *users.Connection // 用户会话连接
+	session *users.Connection // SSH客户端会话连接
 	user    *users.User       // 当前用户
 	cancel  chan bool         // 取消通道
 

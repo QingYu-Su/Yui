@@ -30,9 +30,9 @@ var (
 	validArchs     = make(map[string]bool)
 )
 
-// BuildConfig 定义了构建配置的结构体
+// BuildConfig 定义了构建RSSH客户端文件配置的结构体
 type BuildConfig struct {
-	Name, Comment, Owners string // 名称、注释、所有者
+	Name, Comment, Owners string // 文件名称、注释、所有者
 
 	GOOS, GOARCH, GOARM string // Go 构建目标的操作系统、架构、ARM 版本
 
@@ -255,7 +255,7 @@ func Build(config BuildConfig) (string, error) {
 		}
 	}
 
-	// 设置文件的 URL 路径（这里不使用文件名，而是配置名作为url的路径，因为文件名是随机的）
+	// 使用文件名作为可下载的URL 路径
 	f.UrlPath = config.Name
 
 	// 如果启用了 LZMA 压缩但未启用 UPX，返回错误

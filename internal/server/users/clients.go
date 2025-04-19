@@ -12,10 +12,10 @@ import (
 
 // 全局变量
 var (
-	// 所有客户端连接的映射
+	// 所有客户端连接的映射，key为唯一ID
 	allClients = map[string]*ssh.ServerConn{}
 
-	// 被所有用户共享的客户端连接映射
+	// 被所有用户共享的客户端连接映射，key为唯一ID
 	ownedByAll = map[string]*ssh.ServerConn{}
 
 	// 唯一ID到所有别名的映射

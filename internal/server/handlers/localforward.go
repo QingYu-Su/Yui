@@ -13,12 +13,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// LocalForward 处理SSH本地端口转发请求(L参数功能)
-// 参数:
-//   - _ : 连接详情字符串(未使用)
-//   - user: 发起请求的用户对象
-//   - newChannel: 新SSH通道请求
-//   - log: 日志记录器
+// 处理SSH客户端的本地端口转发数据通道，并将其数据转发到RSSH客户端上的jump（自定义）通道上
 func LocalForward(_ string, user *users.User, newChannel ssh.NewChannel, log logger.Logger) {
 	// 1. 解析转发目标信息
 	proxyTarget := newChannel.ExtraData() // 获取通道额外数据
@@ -89,8 +84,8 @@ func LocalForward(_ string, user *users.User, newChannel ssh.NewChannel, log log
 
 	// 8. 建立双向数据转发
 	go func() {
-		io.Copy(connection, targetConnection) // 目标->客户端
+		io.Copy(connection, targetConnection) // RSSH客户端->SSH客户端
 		connection.Close()
 	}()
-	io.Copy(targetConnection, connection) // 客户端->目标
+	io.Copy(targetConnection, connection) // SSH客户端->RSSH客户端
 }

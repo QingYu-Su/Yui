@@ -32,12 +32,7 @@ func sendExitCode(code uint32, channel ssh.Channel) {
 	channel.SendRequest("exit-status", false, b)
 }
 
-// Session 函数创建并返回一个ChannelHandler，用于处理SSH会话请求
-// 参数:
-//   - datadir: 数据目录路径，用于命令执行时访问相关数据文件
-//
-// 返回值:
-//   - ChannelHandler: 处理SSH会话通道的函数
+// Session 函数创建并返回一个ChannelHandler，用于处理SSH会话通道
 func Session(datadir string) ChannelHandler {
 	// 返回实际的通道处理函数
 	return func(connectionDetails string, user *users.User, newChannel ssh.NewChannel, log logger.Logger) {

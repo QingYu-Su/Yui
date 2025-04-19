@@ -28,15 +28,7 @@ var allCommands = map[string]terminal.Command{
 	"clear":        &clear{},             // 清屏
 }
 
-// CreateCommands 创建并初始化命令集合
-// 参数:
-//   - session: 当前会话ID
-//   - user: 当前用户对象
-//   - log: 日志记录器
-//   - datadir: 数据目录路径
-//
-// 返回:
-//   - 初始化后的命令映射表
+// CreateCommands 创建特定于某个用户和SSH客户端的RSSH服务端命令集合，主要是用于在SSH客户端会话通道中执行命令
 func CreateCommands(session string, user *users.User, log logger.Logger, datadir string) map[string]terminal.Command {
 	// 初始化命令集合，部分命令需要依赖注入
 	var o = map[string]terminal.Command{

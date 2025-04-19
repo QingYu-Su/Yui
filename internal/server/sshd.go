@@ -220,7 +220,7 @@ func ParseAddress(address string) (cidr []*net.IPNet, err error) {
 // ErrKeyNotInList 定义公钥不在列表中的错误
 var ErrKeyNotInList = errors.New("key not found")
 
-// CheckAuth 检查认证信息是否有效
+// CheckAuth RSSH客户端认证函数
 // 参数:
 //
 //	keysPath - 公钥文件路径
@@ -351,9 +351,9 @@ func isDirEmpty(name string) bool {
 //	timeout - 连接超时时间
 func StartSSHServer(sshListener net.Listener, privateKey ssh.Signer, insecure, openproxy bool, dataDir string, timeout int) {
 	// 设置授权密钥文件路径
-	adminAuthorizedKeysPath := filepath.Join(dataDir, "authorized_keys")
-	authorizedControlleeKeysPath := filepath.Join(dataDir, "authorized_controllee_keys")
-	authorizedProxyKeysPath := filepath.Join(dataDir, "authorized_proxy_keys")
+	adminAuthorizedKeysPath := filepath.Join(dataDir, "authorized_keys")                 //管理员授权公钥
+	authorizedControlleeKeysPath := filepath.Join(dataDir, "authorized_controllee_keys") //RSSH客户端公钥
+	authorizedProxyKeysPath := filepath.Join(dataDir, "authorized_proxy_keys")           //代理客户端公钥
 
 	// 创建下载目录(如果不存在)
 	downloadsDir := filepath.Join(dataDir, "downloads")
@@ -421,7 +421,7 @@ func StartSSHServer(sshListener net.Listener, privateKey ssh.Signer, insecure, o
 				return nil, err
 			}
 
-			// 检查控制客户端密钥(不安全模式下允许任何客户端)
+			// 检查RSSH客户端密钥(不安全模式下允许任何客户端)
 			perms, err := CheckAuth(authorizedControlleeKeysPath, key, remoteIp, insecure)
 			if err == nil {
 				perms.Extensions["type"] = "client"
@@ -450,7 +450,7 @@ func StartSSHServer(sshListener net.Listener, privateKey ssh.Signer, insecure, o
 	// 添加主机密钥
 	config.AddHostKey(privateKey)
 
-	// 注册连接状态观察者
+	// 注册RSSH客户端状态观察者，发生变化则写入日志文件
 	observers.ConnectionState.Register(func(c observers.ClientState) {
 		var arrowDirection = "<-"
 		if c.Status == "disconnected" {
@@ -576,7 +576,7 @@ func acceptConn(c net.Conn, config *ssh.ServerConfig, timeout int, dataDir strin
 		go ssh.DiscardRequests(reqs)
 
 	case "client":
-		// 处理可控客户端连接
+		// 处理RSSH客户端连接
 		id, username, err := users.AssociateClient(sshConn)
 		if err != nil {
 			clientLog.Error("无法添加新客户端 %s", err)

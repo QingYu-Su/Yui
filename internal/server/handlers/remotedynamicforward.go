@@ -12,14 +12,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// RemoteDynamicForward 处理SSH远程端口转发请求
-// 这种处理器允许在服务器本机上打开端口，使得在具有严格AV保护的机器上，
-// 可以使用普通SSH客户端通过`ssh -R port rssh.server`命令获得可代理的网络端口
-//
-// 参数:
-//   - sshConn: SSH连接对象
-//   - reqs: 接收SSH请求的通道
-//   - log: 日志记录器
+// 处理SSH客户端端口转发请求，主要用于处理远程端口转发
+// 参数为SSH全局连接，SSH连接全局请求，日志器
 func RemoteDynamicForward(sshConn ssh.Conn, reqs <-chan *ssh.Request, log logger.Logger) {
 	// 确保在函数结束时关闭SSH连接
 	defer sshConn.Close()
@@ -96,16 +90,10 @@ func RemoteDynamicForward(sshConn ssh.Conn, reqs <-chan *ssh.Request, log logger
 	log.Info("Proxy client %s ended", sshConn.RemoteAddr())
 }
 
-// handleData 处理远程端口转发的实际数据传输
-// 参数:
-//   - rf: 远程转发请求信息，包含目标地址和端口
-//   - proxyCon: 本地代理连接(服务器上接受的连接)
-//   - sshConn: SSH连接对象
-//
-// 返回值:
-//   - error: 处理过程中遇到的错误
+// 处理远程端口转发的数据通道
+// 参数为：服务器监听的地址和端口，其他服务连接到监听地址上的连接，连接到SSH客户端的SSH连接
 func handleData(rf internal.RemoteForwardRequest, proxyCon net.Conn, sshConn ssh.Conn) error {
-	// 1. 解析原始连接地址和端口
+	// 1. 解析原始连接地址和端口，这里获取的是连接到服务器的其他服务的IP地址和端口
 	originatorAddress := proxyCon.LocalAddr().String()
 	var originatorPort uint32
 
@@ -127,11 +115,11 @@ func handleData(rf internal.RemoteForwardRequest, proxyCon net.Conn, sshConn ssh
 
 	// 2. 构造SSH通道打开消息
 	drtMsg := internal.ChannelOpenDirectMsg{
-		Raddr: rf.BindAddr, // 远程目标地址
-		Rport: rf.BindPort, // 远程目标端口
+		Raddr: rf.BindAddr, // 服务器监听地址（目标地址），这里使用客户端要求的监听地址，但在服务器上为了安全只监听127.0.0.1
+		Rport: rf.BindPort, // 服务器监听端口（目标端口）
 
-		Laddr: originatorAddress, // 本地(服务器)地址
-		Lport: originatorPort,    // 本地(服务器)端口
+		Laddr: originatorAddress, // 其他服务的IP地址（源地址）
+		Lport: originatorPort,    // 其他服务的端口 （源端口）
 	}
 
 	// 3. 序列化消息并打开SSH通道
