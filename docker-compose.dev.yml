@@ -1,0 +1,47 @@
+# Docker Compose 配置文件版本（隐式声明，实际版本取决于使用的Compose版本）
+# 定义多个服务（容器）及其配置
+
+services:
+  # 第一个容器服务定义
+  container1:
+    image: archlinux  # 使用 archlinux 官方镜像作为基础
+    command: sleep infinity  # 容器启动后执行 sleep 无限期休眠（保持容器运行）
+    volumes:
+      # 挂载宿主机 ./bin/ 目录到容器的 /usr/local/bin 目录
+      # 允许容器访问宿主机 bin 目录下的可执行文件
+      - ./bin/:/usr/local/bin
+    networks:
+      custom_network:  # 连接到自定义网络
+        ipv4_address: 172.25.0.2  # 为此容器分配静态IP地址
+
+  # 第二个容器服务定义
+  container2:
+    image: archlinux  # 使用 archlinux 官方镜像
+    ports:
+      # 端口映射：将宿主机的 3232 端口映射到容器的 3232 端口（TCP协议）
+      # 允许外部通过宿主机的3232端口访问容器服务
+      - "3232:3232/tcp"
+    volumes:
+      # 挂载宿主机 ./bin/ 目录到容器的 /usr/local/bin 目录
+      - ./bin/:/usr/local/bin
+    command: sleep infinity  # 容器启动后保持运行
+    networks:
+      custom_network:  # 连接到自定义网络
+        ipv4_address: 172.25.0.3  # 为此容器分配静态IP地址
+
+  # 第三个容器服务定义
+  container3:
+    image: archlinux  # 使用 archlinux 官方镜像
+    command: sleep infinity  # 容器启动后保持运行
+    privileged: true  # 赋予容器特权模式（可访问所有设备，具有root权限）
+    networks:
+      custom_network:  # 连接到自定义网络
+        ipv4_address: 172.25.0.4  # 为此容器分配静态IP地址
+
+# 自定义网络配置
+networks:
+  custom_network:  # 网络名称
+    ipam:  # IP地址管理配置
+      config:
+        - subnet: 172.25.0.0/24  # 定义子网范围（172.25.0.0 - 172.25.0.255）
+          gateway: 172.25.0.1  # 设置网关地址（通常用于容器与外部通信）
